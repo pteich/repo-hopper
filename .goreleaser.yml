@@ -18,21 +18,11 @@ builds:
       - linux
     goarch:
       - amd64
-      - arm64
     ldflags:
       - -s -w
       - -X main.version={{.Version}}
       - -X main.commit={{.ShortCommit}}
       - -X main.date={{.CommitDate}}
-    # arm64 cross-compilation from the amd64 runner needs an explicit cross-compiler.
-    # Install gcc-aarch64-linux-gnu in the workflow before running GoReleaser.
-    overrides:
-      - goos: linux
-        goarch: arm64
-        env:
-          - CGO_ENABLED=1
-          - CC=aarch64-linux-gnu-gcc
-          - CXX=aarch64-linux-gnu-g++
     # No post-hook needed — the plain binary is the final Linux artifact.
 
   - main: ./cmd/cli
