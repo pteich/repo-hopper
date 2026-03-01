@@ -2,6 +2,7 @@ package ui
 
 import (
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/pteich/repo-hopper/internal/actions"
@@ -21,6 +22,9 @@ var settings *config.Settings
 // OnSettingsChanged is called when the user saves new settings in the GUI.
 var OnSettingsChanged func(s config.Settings)
 
+// OnUpdateCheckRequested is called when the user manually checks for updates.
+var OnUpdateCheckRequested func()
+
 // Run initializes the Shirei application window and starts the rendering loop.
 func Run(e *engine.Engine, s *config.Settings) {
 	eng = e
@@ -38,6 +42,21 @@ const searchDebounceMs = 150
 
 var hasAutoFocused bool
 var showSettings bool
+var showUpdateDialog bool
+
+// OpenURL opens a URL in the default browser
+func OpenURL(url string) {
+	var cmd *exec.Cmd
+	switch os.Getenv("GOOS") {
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	default: // linux and others
+		cmd = exec.Command("xdg-open", url)
+	}
+	_ = cmd.Run()
+}
 
 // RootView is called every frame by Shirei.
 func RootView() {
@@ -110,6 +129,19 @@ func RootView() {
 					TextSize: 14,
 				}) {
 					showSettings = true
+				}
+
+				// Check for Updates Icon
+				if ButtonExt("", ButtonAttrs{
+					Icon:     SymDownload,
+					TextSize: 14,
+				}) {
+					showUpdateDialog = true
+					go func() {
+						if OnUpdateCheckRequested != nil {
+							OnUpdateCheckRequested()
+						}
+					}()
 				}
 			})
 		})
@@ -230,6 +262,10 @@ func RootView() {
 	if showSettings {
 		SettingsDialog()
 	}
+
+	if showUpdateDialog {
+		UpdateDialog()
+	}
 }
 
 func handleKeyboardInput() {
@@ -284,3 +320,6 @@ func handleKeyboardInput() {
 		}
 	}
 }
+
+// OnSkipUpdateVersion is called when user chooses to skip a specific version.
+var OnSkipUpdateVersion func(version string)

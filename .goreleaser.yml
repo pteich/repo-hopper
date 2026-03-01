@@ -96,6 +96,7 @@ nfpms:
 
 brews:
   - name: repo-hopper
+    ids: [ cli ]   # only the CLI archive; desktop .app is distributed separately
     homepage: https://github.com/pteich/repo-hopper
     repository:
       owner: pteich

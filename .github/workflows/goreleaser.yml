@@ -81,7 +81,11 @@ jobs:
 
       - name: Build macOS .app bundle
         run: |
-          gogio -target macos -arch ${{ matrix.goarch }} -icon appicon.png -o RepoHopper.app ./cmd/desktop/
+          TAG=${{ github.ref_name }}
+          COMMIT=$(git rev-parse --short HEAD)
+          DATE=$(git log -1 --format=%cI)
+          LDFLAGS="-s -w -X main.version=${TAG} -X main.commit=${COMMIT} -X main.date=${DATE}"
+          gogio -target macos -arch ${{ matrix.goarch }} -ldflags "${LDFLAGS}" -icon appicon.png -o RepoHopper.app ./cmd/desktop/
           # gogio may nest the real bundle inside a wrapper; handle both cases
           INNER="RepoHopper.app/RepoHopper_${{ matrix.goarch }}.app"
           if [ -d "$INNER" ]; then
@@ -130,7 +134,11 @@ jobs:
           CGO_ENABLED: "1"
         shell: bash
         run: |
-          gogio -target windows -arch ${{ matrix.goarch }} -icon appicon.png -o repo-hopper-windows-${{ matrix.goarch }}.exe ./cmd/desktop/
+          TAG=${{ github.ref_name }}
+          COMMIT=$(git rev-parse --short HEAD)
+          DATE=$(git log -1 --format=%cI)
+          LDFLAGS="-s -w -X main.version=${TAG} -X main.commit=${COMMIT} -X main.date=${DATE}"
+          gogio -target windows -arch ${{ matrix.goarch }} -ldflags "${LDFLAGS}" -icon appicon.png -o repo-hopper-windows-${{ matrix.goarch }}.exe ./cmd/desktop/
 
       - name: Zip artifact
         shell: bash
