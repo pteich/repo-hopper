@@ -41,7 +41,9 @@ jobs:
             libglib2.0-dev \
             libgtk-3-dev \
             libpango1.0-dev \
-            libcairo2-dev
+            libcairo2-dev \
+            gcc-aarch64-linux-gnu \
+            g++-aarch64-linux-gnu
 
       - name: Download Syft
         uses: anchore/sbom-action/download-syft@v0.17.4
@@ -58,9 +60,10 @@ jobs:
           GOMAXPROCS: 2
 
   # ─── macOS native build & upload ───────────────────────────────────────────
+  # Runs in parallel with goreleaser — softprops/action-gh-release creates the
+  # draft release if it doesn't exist yet, so no needs: dependency required.
   release-macos:
     runs-on: macos-latest
-    needs: goreleaser      # wait for the draft release to be created first
     strategy:
       matrix:
         goarch: [ amd64, arm64 ]
@@ -79,11 +82,9 @@ jobs:
         run: go install gioui.org/cmd/gogio@latest
 
       - name: Build macOS .app bundle
-        env:
-          GOARCH: ${{ matrix.goarch }}
         run: |
           gogio -target macos -arch ${{ matrix.goarch }} -icon appicon.png -o RepoHopper.app ./cmd/desktop/
-          # gogio nests the real bundle inside; pick the right one
+          # gogio may nest the real bundle inside a wrapper; handle both cases
           INNER="RepoHopper.app/RepoHopper_${{ matrix.goarch }}.app"
           if [ -d "$INNER" ]; then
             mv "$INNER" RepoHopper-darwin-${{ matrix.goarch }}.app
@@ -100,7 +101,7 @@ jobs:
         with:
           files: RepoHopper-darwin-${{ matrix.goarch }}.zip
           tag_name: ${{ github.ref_name }}
-          draft: true         # keep consistent with GoReleaser draft
+          draft: true
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GH_GORELEASER }}
@@ -108,7 +109,6 @@ jobs:
   # ─── Windows native build & upload ─────────────────────────────────────────
   release-windows:
     runs-on: windows-latest
-    needs: goreleaser
     strategy:
       matrix:
         goarch: [ amd64, arm64 ]
