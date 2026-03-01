@@ -45,16 +45,18 @@ builds:
       - -X main.date={{.CommitDate}}
 
 archives:
-  - ids: [ desktop ]
-    format: tar.gz
+  - id: desktop
+    ids: [ desktop ]
+    formats: [ tar.gz ]
     name_template: "repo-hopper_{{ .Os }}_{{ .Arch }}"
     files:
       - README.md
-  - ids: [ cli ]
-    format: tar.gz
+  - id: cli
+    ids: [ cli ]
+    formats: [ tar.gz ]
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [ zip ]
     name_template: "repo-hopper-cli_{{ .Os }}_{{ .Arch }}"
     files:
       - README.md
