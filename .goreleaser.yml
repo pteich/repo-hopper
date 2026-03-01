@@ -7,14 +7,15 @@ before:
     - go install gioui.org/cmd/gogio@latest
 
 builds:
+  # GoReleaser runs on Linux — it builds the Linux binary directly.
+  # macOS and Windows are built by separate native runner jobs in goreleaser.yml
+  # and uploaded to the same draft release.
   - main: ./cmd/desktop
     id: "desktop"
     env:
       - CGO_ENABLED=1
     goos:
       - linux
-      - windows
-      - darwin
     goarch:
       - amd64
       - arm64
@@ -23,17 +24,38 @@ builds:
       - -X main.version={{.Version}}
       - -X main.commit={{.ShortCommit}}
       - -X main.date={{.CommitDate}}
-    hooks:
-      post:
-        - bash -c 'gogio -target {{ .Os }}/{{ .Arch }} -icon appicon.png -o repo-hopper-{{ .Os }}-{{ .Arch }} ./cmd/desktop/ && mv repo-hopper-{{ .Os }}-{{ .Arch }} {{ .Path }}'
+    # No post-hook needed for Linux desktop — GoReleaser's standard go build
+    # (with CGO_ENABLED=1 and the apt-installed libs above) produces the binary directly.
+
+  - main: ./cmd/cli
+    id: "cli"
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.date={{.CommitDate}}
 
 archives:
-  - format: tar.gz
+  - ids: [ desktop ]
+    format: tar.gz
+    name_template: "repo-hopper_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+  - ids: [ cli ]
+    format: tar.gz
     format_overrides:
       - goos: windows
         format: zip
-      - goos: darwin
-        format: zip
+    name_template: "repo-hopper-cli_{{ .Os }}_{{ .Arch }}"
     files:
       - README.md
 
@@ -59,7 +81,8 @@ sboms:
   - artifacts: archive
 
 nfpms:
-  - file_name_template: "{{ .ConventionalFileName }}"
+  - ids: [ desktop ]
+    file_name_template: "{{ .ConventionalFileName }}"
     formats:
       - deb
       - rpm

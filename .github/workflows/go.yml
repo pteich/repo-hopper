@@ -8,10 +8,12 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.25.x', '1.26.x']
+        # GitHub provides free native runners for all three OS for public repos
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        go-version: [ '1.25.x', '1.26.x' ]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout
@@ -30,22 +32,27 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libx11-dev \
-            libgl1-mesa-dev \
-            libwayland-dev \
             libxkbcommon-dev \
+            libgl1-mesa-dev \
+            libvulkan-dev \
+            libwayland-dev \
+            xorg-dev \
             libglib2.0-dev \
             libgtk-3-dev \
             libpango1.0-dev \
             libcairo2-dev
 
+      # macOS ships with the Metal framework; no extra deps needed.
+      # Xcode Command Line Tools are pre-installed on macos-latest runners.
+
       - name: Download dependencies
         run: go mod tidy
 
       - name: Build desktop app
-        run: go build -o repo-hopper ./cmd/desktop/
+        run: go build -o repo-hopper${{ runner.os == 'Windows' && '.exe' || '' }} ./cmd/desktop/
 
       - name: Build CLI
-        run: go build -o repo-hopper-cli ./cmd/cli/
+        run: go build -o repo-hopper-cli${{ runner.os == 'Windows' && '.exe' || '' }} ./cmd/cli/
 
       - name: Test
         run: go test -v ./...

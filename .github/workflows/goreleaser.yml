@@ -9,6 +9,7 @@ permissions:
   contents: write
 
 jobs:
+  # ─── Linux release via GoReleaser ──────────────────────────────────────────
   goreleaser:
     runs-on: ubuntu-latest
     steps:
@@ -27,9 +28,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libx11-dev \
-            libgl1-mesa-dev \
-            libwayland-dev \
             libxkbcommon-dev \
+            libgl1-mesa-dev \
+            libvulkan-dev \
+            libwayland-dev \
+            xorg-dev \
             libglib2.0-dev \
             libgtk-3-dev \
             libpango1.0-dev \
@@ -48,3 +51,95 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_GORELEASER }}
           GOMAXPROCS: 2
+
+  # ─── macOS native build & upload ───────────────────────────────────────────
+  release-macos:
+    runs-on: macos-latest
+    needs: goreleaser      # wait for the draft release to be created first
+    strategy:
+      matrix:
+        goarch: [ amd64, arm64 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.x'
+
+      - name: Install gogio
+        run: go install gioui.org/cmd/gogio@latest
+
+      - name: Build macOS .app bundle
+        env:
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          gogio -target macos -arch ${{ matrix.goarch }} -icon appicon.png -o RepoHopper.app ./cmd/desktop/
+          # gogio nests the real bundle inside; pick the right one
+          INNER="RepoHopper.app/RepoHopper_${{ matrix.goarch }}.app"
+          if [ -d "$INNER" ]; then
+            mv "$INNER" RepoHopper-darwin-${{ matrix.goarch }}.app
+            rm -rf RepoHopper.app
+          else
+            mv RepoHopper.app RepoHopper-darwin-${{ matrix.goarch }}.app
+          fi
+          # Ad-hoc sign so the bundle can run without an Apple certificate
+          codesign --force --deep --sign - RepoHopper-darwin-${{ matrix.goarch }}.app
+          zip -r RepoHopper-darwin-${{ matrix.goarch }}.zip RepoHopper-darwin-${{ matrix.goarch }}.app
+
+      - name: Upload macOS artifact to GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: RepoHopper-darwin-${{ matrix.goarch }}.zip
+          tag_name: ${{ github.ref_name }}
+          draft: true         # keep consistent with GoReleaser draft
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_GORELEASER }}
+
+  # ─── Windows native build & upload ─────────────────────────────────────────
+  release-windows:
+    runs-on: windows-latest
+    needs: goreleaser
+    strategy:
+      matrix:
+        goarch: [ amd64, arm64 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.x'
+
+      - name: Install gogio
+        run: go install gioui.org/cmd/gogio@latest
+
+      - name: Build Windows executable
+        env:
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "1"
+        shell: bash
+        run: |
+          gogio -target windows -arch ${{ matrix.goarch }} -icon appicon.png -o repo-hopper-windows-${{ matrix.goarch }}.exe ./cmd/desktop/
+
+      - name: Zip artifact
+        shell: bash
+        run: |
+          7z a repo-hopper-windows-${{ matrix.goarch }}.zip repo-hopper-windows-${{ matrix.goarch }}.exe
+
+      - name: Upload Windows artifact to GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: repo-hopper-windows-${{ matrix.goarch }}.zip
+          tag_name: ${{ github.ref_name }}
+          draft: true
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_GORELEASER }}
