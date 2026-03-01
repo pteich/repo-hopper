@@ -1,0 +1,5 @@
+repo-hopper*
+desktop
+**/*.app
+.idea
+.DS_Store
