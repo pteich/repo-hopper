@@ -1,0 +1,40 @@
+name: goreleaser
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26'
+
+      - name: Install lib dependencies (Linux)
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libgl1-mesa-dev xorg-dev libxkbcommon-dev
+
+      - name: Download Syft
+        uses: anchore/sbom-action/download-syft@v0.17.4
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        timeout-minutes: 60
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean -p 1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_GORELEASER }}
+          GOMAXPROCS: 2

@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go install gioui.org/cmd/gogio@latest
+
+builds:
+  - main: ./cmd/desktop
+    id: "desktop"
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.date={{.CommitDate}}
+    hooks:
+      post:
+        - bash -c 'gogio -target {{ .Os }}/{{ .Arch }} -icon appicon.png -o repo-hopper-{{ .Os }}-{{ .Arch }} ./cmd/desktop/ && mv repo-hopper-{{ .Os }}-{{ .Arch }} {{ .Path }}'
+
+archives:
+  - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+      - goos: darwin
+        format: zip
+    files:
+      - README.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - typo
+      - Goreleaser
+      - Dockerfile
+      - CI
+      - '^test:'
+
+sboms:
+  - artifacts: archive
+
+nfpms:
+  - file_name_template: "{{ .ConventionalFileName }}"
+    formats:
+      - deb
+      - rpm
+      - apk
+      - archlinux
+    maintainer: "Peter Teich <mail@peter-teich.de>"
+    vendor: "Peter Teich"
+    homepage: "https://github.com/pteich/repo-hopper"
+    description: "GUI application for managing and navigating GitHub repositories."
+    license: "MIT"
+
+brews:
+  - name: repo-hopper
+    homepage: https://github.com/pteich/repo-hopper
+    repository:
+      owner: pteich
+      name: homebrew-tap
+
+release:
+  draft: true
+  replace_existing_draft: true
+  replace_existing_artifacts: true
