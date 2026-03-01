@@ -2,9 +2,9 @@ package ui
 
 import (
 	"os"
-	"os/exec"
 	"time"
 
+	"github.com/cli/browser"
 	"github.com/pteich/repo-hopper/internal/actions"
 	"github.com/pteich/repo-hopper/internal/config"
 	"github.com/pteich/repo-hopper/internal/engine"
@@ -44,18 +44,9 @@ var hasAutoFocused bool
 var showSettings bool
 var showUpdateDialog bool
 
-// OpenURL opens a URL in the default browser
+// OpenURL opens a URL in the default browser using the OS default handler.
 func OpenURL(url string) {
-	var cmd *exec.Cmd
-	switch os.Getenv("GOOS") {
-	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
-	case "darwin":
-		cmd = exec.Command("open", url)
-	default: // linux and others
-		cmd = exec.Command("xdg-open", url)
-	}
-	_ = cmd.Run()
+	_ = browser.OpenURL(url)
 }
 
 // RootView is called every frame by Shirei.

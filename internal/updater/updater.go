@@ -37,8 +37,6 @@ const (
 
 // CheckForUpdates queries GitHub for the latest release and compares with current version
 func CheckForUpdates(currentVersion string, skipVersion string) (*UpdateInfo, error) {
-	fmt.Printf("Current Version: %s\n", currentVersion)
-
 	if currentVersion == "" || strings.Contains(currentVersion, "unknown") {
 		return nil, fmt.Errorf("current version not available")
 	}
