@@ -29,6 +29,7 @@ var OnUpdateCheckRequested func()
 func Run(e *engine.Engine, s *config.Settings) {
 	eng = e
 	settings = s
+	lastInteractionAt = time.Now()
 	app.SetupWindow("Repo Hopper", 800, 600)
 	app.Run(RootView)
 }
@@ -43,6 +44,9 @@ const searchDebounceMs = 150
 var hasAutoFocused bool
 var showSettings bool
 var showUpdateDialog bool
+var lastInteractionAt time.Time
+
+const idleFocusBlurAfter = 10 * time.Second
 
 // OpenURL opens a URL in the default browser using the OS default handler.
 func OpenURL(url string) {
@@ -59,6 +63,8 @@ func RootView() {
 	if !hasAutoFocused {
 		hasAutoFocused = true
 	}
+
+	maybeBlurIdleFocus()
 
 	// Handle Global Keyboard Shortcuts
 	handleKeyboardInput()
@@ -256,6 +262,23 @@ func RootView() {
 
 	if showUpdateDialog {
 		UpdateDialog()
+	}
+}
+
+func maybeBlurIdleFocus() {
+	if FrameInput.Mouse != 0 ||
+		FrameInput.Motion != (Vec2{}) ||
+		FrameInput.Scroll != (Vec2{}) ||
+		FrameInput.Key != 0 ||
+		FrameInput.Text != "" {
+		lastInteractionAt = time.Now()
+		return
+	}
+
+	// TextInput requests a redraw while focused for caret blinking.
+	// If the user is idle, dropping focus lets the app fall back to low idle FPS.
+	if !IdHasFocus(nil) && time.Since(lastInteractionAt) > idleFocusBlurAfter {
+		FocusImmediateOn(nil)
 	}
 }
 

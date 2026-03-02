@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/pteich/repo-hopper/internal/config"
@@ -17,6 +18,9 @@ var (
 	version = "dev"
 	commit  = "unknown"
 	date    = "unknown"
+
+	scanMu     sync.Mutex
+	scanCancel context.CancelFunc
 )
 
 func main() {
@@ -47,6 +51,14 @@ func main() {
 }
 
 func runScan(eng *engine.Engine, settings config.Settings) {
+	scanMu.Lock()
+	if scanCancel != nil {
+		scanCancel()
+	}
+	scanCtx, cancel := context.WithCancel(context.Background())
+	scanCancel = cancel
+	scanMu.Unlock()
+
 	cfg := scanner.ScanConfig{
 		RootDirs:        settings.ScanDirs,
 		MaxDepth:        settings.MaxDepth,
@@ -54,7 +66,7 @@ func runScan(eng *engine.Engine, settings config.Settings) {
 		ExcludePatterns: settings.ExcludePatterns,
 	}
 	sc := scanner.NewScanner(cfg, eng)
-	go sc.Start(context.Background())
+	go sc.Start(scanCtx)
 }
 
 func periodicRescan(eng *engine.Engine, settings config.Settings) {
