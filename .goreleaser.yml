@@ -25,22 +25,7 @@ builds:
       - -X main.date={{.CommitDate}}
     # No post-hook needed — the plain binary is the final Linux artifact.
 
-  - main: ./cmd/cli
-    id: "cli"
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
-      - arm64
-    ldflags:
-      - -s -w
-      - -X main.version={{.Version}}
-      - -X main.commit={{.ShortCommit}}
-      - -X main.date={{.CommitDate}}
+
 
 archives:
   - id: desktop
@@ -49,15 +34,7 @@ archives:
     name_template: "repo-hopper_{{ .Os }}_{{ .Arch }}"
     files:
       - README.md
-  - id: cli
-    ids: [ cli ]
-    formats: [ tar.gz ]
-    format_overrides:
-      - goos: windows
-        formats: [ zip ]
-    name_template: "repo-hopper-cli_{{ .Os }}_{{ .Arch }}"
-    files:
-      - README.md
+
 
 checksum:
   name_template: 'checksums.txt'
@@ -94,13 +71,7 @@ nfpms:
     description: "GUI application for managing and navigating GitHub repositories."
     license: "MIT"
 
-brews:
-  - name: repo-hopper
-    ids: [ cli ]   # only the CLI archive; desktop .app is distributed separately
-    homepage: https://github.com/pteich/repo-hopper
-    repository:
-      owner: pteich
-      name: homebrew-tap
+
 
 release:
   draft: true

@@ -102,6 +102,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: RepoHopper-darwin-${{ matrix.goarch }}.zip
+          name: ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           draft: true
           fail_on_unmatched_files: true
@@ -149,6 +150,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: repo-hopper-windows-${{ matrix.goarch }}.zip
+          name: ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           draft: true
           fail_on_unmatched_files: true
