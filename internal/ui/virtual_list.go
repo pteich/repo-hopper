@@ -4,7 +4,6 @@ import (
 	"math"
 
 	. "go.hasen.dev/shirei"
-	. "go.hasen.dev/shirei/tw"
 	. "go.hasen.dev/shirei/widgets"
 )
 
@@ -96,7 +95,7 @@ func VirtualListWithScroll(itemCount int, itemIdFn func(int) any, itemHeightFn I
 		}
 	}
 
-	Layout(TW(Viewport, NoAnimate), func() {
+	Container(Attrs(Viewport, NoAnimate), func() {
 		ScrollOnInput()
 		ScrollBars()
 
@@ -175,7 +174,7 @@ func VirtualListWithScroll(itemCount int, itemIdFn func(int) any, itemHeightFn I
 
 		spaceBefore := first.Offset
 
-		Element(TW(FixHeight(spaceBefore)))
+		Element(Attrs(FixHeight(spaceBefore)))
 
 		var renderedHeight = -(state.ScrollOffset - spaceBefore)
 
@@ -188,7 +187,7 @@ func VirtualListWithScroll(itemCount int, itemIdFn func(int) any, itemHeightFn I
 			renderedHeight += height
 
 			id := itemIdFn(idx)
-			LayoutId(id, TW(FixSize(width, height)), func() {
+			ContainerWithKey(id, Attrs(FixSize(width, height)), func() {
 				itemViewFn(idx, width)
 			})
 
@@ -207,6 +206,6 @@ func VirtualListWithScroll(itemCount int, itemIdFn func(int) any, itemHeightFn I
 			spaceAfter = float32(remainingCount) * avgHeight
 		}
 
-		Element(TW(FixHeight(spaceAfter)))
+		Element(Attrs(FixHeight(spaceAfter)))
 	})
 }

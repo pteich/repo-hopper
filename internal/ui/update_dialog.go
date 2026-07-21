@@ -6,7 +6,6 @@ import (
 	"github.com/pteich/repo-hopper/internal/updater"
 
 	. "go.hasen.dev/shirei"
-	. "go.hasen.dev/shirei/tw"
 	. "go.hasen.dev/shirei/widgets"
 )
 
@@ -26,63 +25,63 @@ func UpdateDialog() {
 	}
 	Popup(func() {
 		// Dark overlay
-		overlayAttrs := TW(
+		overlayAttrs := Attrs(
 			Float(0, 0),
-			FixSizeV(WindowSize),
+			FixSizeVec(WindowSize),
 			Center,
 			CrossMid,
-			BG(0, 0, 0, 0.7),
+			Background(0, 0, 0, 0.7),
 		)
 
-		Layout(overlayAttrs, func() {
+		Container(overlayAttrs, func() {
 			// Modal panel
-			modalAttrs := TW(
+			modalAttrs := Attrs(
 				FixWidth(450),
-				BG(0, 0, 15, 1),
-				BR(12),
+				Background(0, 0, 15, 1),
+				Corners(12),
 				Pad(24),
 				Spacing(16),
-				Bo(0, 0, 30, 1),
-				BW(1),
-				Shd(20),
+				BorderColor(0, 0, 30, 1),
+				BorderWidth(1),
+				BoxShadow(20),
 			)
 
-			Layout(modalAttrs, func() {
+			Container(modalAttrs, func() {
 				// Header with icon
-				Layout(TW(Row, Expand, Gap(12), CrossMid), func() {
-					Label("🔄", Sz(28))
-					Layout(TW(Expand), func() {
-						Label("New Version Available!", FontWeight(WeightBold), Sz(18), Clr(0, 0, 100, 1))
+				Container(Attrs(Row, Expand, Gap(12), CrossMid), func() {
+					Label("🔄", FontSize(28))
+					Container(Attrs(Expand), func() {
+						Label("New Version Available!", FontWeight(WeightBold), FontSize(18), TextColor(0, 0, 100, 1))
 						Label(fmt.Sprintf("%s → %s", updateInfo.CurrentVersion, updateInfo.LatestVersion),
-							Sz(14), Clr(0, 0, 70, 1))
+							FontSize(14), TextColor(0, 0, 70, 1))
 					})
 				})
 
 				// Divider
-				Layout(TW(Expand, MaxHeight(1)), func() {
-					Element(TW(Expand, BG(0, 0, 30, 0.3)))
+				Container(Attrs(Expand, MaxHeight(1)), func() {
+					Element(Attrs(Expand, Background(0, 0, 30, 0.3)))
 				})
 
 				// Message
 				Label("A new version of RepoHopper is available for download.",
-					Sz(13), Clr(0, 0, 80, 1))
+					FontSize(13), TextColor(0, 0, 80, 1))
 
 				// Release notes preview (if available)
 				if updateInfo.ReleaseNotes != "" && len(updateInfo.ReleaseNotes) > 0 {
-					Layout(TW(Expand, Spacing(8)), func() {
-						Label("What's New:", FontWeight(WeightBold), Sz(12), Clr(0, 0, 70, 1))
+					Container(Attrs(Expand, Spacing(8)), func() {
+						Label("What's New:", FontWeight(WeightBold), FontSize(12), TextColor(0, 0, 70, 1))
 
 						// Show first few lines of release notes
 						notes := updateInfo.ReleaseNotes
 						if len(notes) > 200 {
 							notes = notes[:200] + "..."
 						}
-						Label(notes, Sz(11), Clr(0, 0, 60, 1))
+						Label(notes, FontSize(11), TextColor(0, 0, 60, 1))
 					})
 				}
 
 				// Buttons
-				Layout(TW(Row, Expand, CrossMid, Gap(10)), func() {
+				Container(Attrs(Row, Expand, CrossMid, Gap(10)), func() {
 					Filler(1)
 
 					// Skip button
@@ -101,7 +100,7 @@ func UpdateDialog() {
 					}
 
 					// Download button
-					if ButtonExt("Download Now", ButtonAttrs{Primary: true}) {
+					if ButtonExt("Download Now", ButtonAttrs{Accent: Vec4{210, 80, 50, 1}}) {
 						showUpdateDialog = false
 						// Open release URL in browser
 						OpenURL(updateInfo.ReleaseURL)

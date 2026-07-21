@@ -8,7 +8,6 @@ import (
 	"github.com/pteich/repo-hopper/internal/config"
 
 	. "go.hasen.dev/shirei"
-	. "go.hasen.dev/shirei/tw"
 	. "go.hasen.dev/shirei/widgets"
 )
 
@@ -39,37 +38,39 @@ func SettingsDialog() {
 	Popup(func() {
 		// Dark overlay - we use WindowSize directly to ensure it covers the whole screen
 		// and Float(0,0) to anchor it to top-left regardless of where was called.
-		overlayAttrs := TW(
+		overlayAttrs := Attrs(
 			Float(0, 0),
-			FixSizeV(WindowSize),
+			FixSizeVec(WindowSize),
 			Center,   // Center children horizontally
 			CrossMid, // Center children vertically
-			BG(0, 0, 0, 0.7),
+			Background(0, 0, 0, 0.7),
 		)
 
-		Layout(overlayAttrs, func() {
+		Container(overlayAttrs, func() {
 			// Modal panel - Let it auto-size completely based on its children!
-			modalAttrs := TW(
+			modalAttrs := Attrs(
 				FixWidth(500),
-				BG(0, 0, 15, 1),
-				BR(8),
+				Background(0, 0, 15, 1),
+				Corners(8),
 				Pad(20),
 				Spacing(15),
-				Bo(0, 0, 30, 1),
-				BW(1),
-				Shd(20),
+				BorderColor(0, 0, 30, 1),
+				BorderWidth(1),
+				BoxShadow(20),
 			)
 
-			Layout(modalAttrs, func() {
-				Label("Settings", FontWeight(WeightBold), Sz(20), Clr(0, 0, 100, 1))
+			Container(modalAttrs, func() {
+				Label("Settings", FontWeight(WeightBold), FontSize(20), TextColor(0, 0, 100, 1))
 
 				// Form Fields
 				formField := func(label string, buf *string, hint string) {
-					Layout(TW(Expand, Spacing(5)), func() {
-						Label(label, Sz(14), Clr(0, 0, 70, 1))
-						TextInput(buf)
+					Container(Attrs(Expand, Spacing(5)), func() {
+						Label(label, FontSize(14), TextColor(0, 0, 70, 1))
+						Container(Attrs(Expand), func() {
+							fullWidthTextInput(buf)
+						})
 						if hint != "" {
-							Label(hint, Sz(11), Clr(0, 0, 40, 1))
+							Label(hint, FontSize(11), TextColor(0, 0, 40, 1))
 						}
 					})
 				}
@@ -78,20 +79,25 @@ func SettingsDialog() {
 				formField("Editor Command", &editorStr, "e.g. code, goland, nvim")
 				formField("Terminal Command", &terminalStr, "e.g. Terminal, iTerm, Warp")
 
-				Layout(TW(Row, Expand, Gap(20)), func() {
-					formField("Re-scan Interval (min)", &rescanStr, "")
-					formField("Max Scan Depth", &maxDepthStr, "")
+				Container(Attrs(Row, Expand, Gap(20)), func() {
+					// Grow(1) makes the two fields split the row evenly.
+					Container(Attrs(Expand, Grow(1)), func() {
+						formField("Re-scan Interval (min)", &rescanStr, "")
+					})
+					Container(Attrs(Expand, Grow(1)), func() {
+						formField("Max Scan Depth", &maxDepthStr, "")
+					})
 				})
 
 				formField("Exclude Patterns (comma separated)", &excludeStr, "e.g. node_modules, vendor, .cache")
 
 				// Validation error display
 				if validationErr != "" {
-					Label(validationErr, Sz(12), Clr(80, 0, 0, 1))
+					Label(validationErr, FontSize(12), TextColor(80, 0, 0, 1))
 				}
 
 				// Buttons
-				Layout(TW(Row, Expand, CrossMid, Gap(10)), func() {
+				Container(Attrs(Row, Expand, CrossMid, Gap(10)), func() {
 					Filler(1)
 
 					if ButtonExt("Cancel", ButtonAttrs{}) {
@@ -100,7 +106,7 @@ func SettingsDialog() {
 						validationErr = ""
 					}
 
-					if ButtonExt("Save & Re-scan", ButtonAttrs{Primary: true}) {
+					if ButtonExt("Save & Re-scan", ButtonAttrs{Accent: Vec4{210, 80, 50, 1}}) {
 						// Validate and parse integers
 						rescanVal, err := strconv.Atoi(rescanStr)
 						if err != nil || rescanVal < 0 {

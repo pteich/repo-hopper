@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"github.com/cli/browser"
+
 	"github.com/pteich/repo-hopper/internal/actions"
 	"github.com/pteich/repo-hopper/internal/config"
 	"github.com/pteich/repo-hopper/internal/engine"
 
-	app "go.hasen.dev/shirei/giobackend"
+	"go.hasen.dev/shirei/app"
 
 	. "go.hasen.dev/shirei"
-	. "go.hasen.dev/shirei/tw"
 	. "go.hasen.dev/shirei/widgets"
 )
 
@@ -53,6 +53,18 @@ func OpenURL(url string) {
 	_ = browser.OpenURL(url)
 }
 
+// fullWidthTextInput renders a TextInput that fills its container's width.
+// TextInput defaults to ~10em; we set MinWidth from the enclosing container's
+// resolved width (last frame's, so it self-corrects on resize). Call inside a
+// container that establishes the desired width.
+func fullWidthTextInput(buf *string) {
+	inputAttrs := DefaultTextInputAttrs()
+	if w := GetResolvedSize()[0]; w > 0 {
+		inputAttrs.MinWidth = w
+	}
+	TextInputExt(buf, inputAttrs)
+}
+
 // RootView is called every frame by Shirei.
 func RootView() {
 	defer DebugPanel(true)
@@ -71,15 +83,15 @@ func RootView() {
 
 	// Outer layout filling the window
 	// Extrinsic makes it accept the dimensions forced by the window system
-	Layout(TW(Extrinsic, Expand, Grow(1), BG(10, 10, 10, 1)), func() {
+	Container(Attrs(Extrinsic, Expand, Grow(1), Background(10, 10, 10, 1)), func() {
 
 		// Search Bar Area
-		Layout(TW(Expand, MaxHeight(60), Pad(10), BG(0, 0, 15, 1), Bo(0, 0, 0, 1), BW(1)), func() {
-			Layout(TW(Row, Expand, CrossMid, Gap(10)), func() {
+		Container(Attrs(Expand, MaxHeight(60), Pad(10), Background(0, 0, 15, 1), BorderColor(0, 0, 0, 1), BorderWidth(1)), func() {
+			Container(Attrs(Row, Expand, CrossMid, Gap(10)), func() {
 				Icon(SymSearch)
 
-				Layout(TW(Expand, Grow(1)), func() {
-					TextInput(&searchQuery)
+				Container(Attrs(Expand, Grow(1)), func() {
+					fullWidthTextInput(&searchQuery)
 				})
 
 				// Debounced search update
@@ -103,10 +115,10 @@ func RootView() {
 				// Scanning indicator - always reserve space to prevent button movement
 				if state.IsScanning {
 					Icon(SymClock)
-					Label("Scanning...", Sz(12), Clr(0, 0, 60, 1))
+					Label("Scanning...", FontSize(12), TextColor(0, 0, 60, 1))
 				} else {
 					// Spacer to keep buttons in same position
-					Element(TW(FixWidth(20)))
+					Element(Attrs(FixWidth(20)))
 				}
 
 				// Refresh button
@@ -144,20 +156,20 @@ func RootView() {
 		})
 
 		// Results List Area
-		Layout(TW(Expand, Grow(1)), func() {
+		Container(Attrs(Expand, Grow(1)), func() {
 			if len(state.FilteredRepos) == 0 {
-				Layout(TW(Expand, Center, CrossMid), func() {
+				Container(Attrs(Expand, Center, CrossMid), func() {
 					if state.IsScanning {
-						Label("Scanning for repositories...", Sz(16), Clr(0, 0, 50, 1))
+						Label("Scanning for repositories...", FontSize(16), TextColor(0, 0, 50, 1))
 					} else {
-						Label("No repositories found.", Sz(16), Clr(0, 0, 50, 1))
+						Label("No repositories found.", FontSize(16), TextColor(0, 0, 50, 1))
 					}
 				})
 				return
 			}
 
 			// Render VirtualListView using our custom scrolling logic
-			LayoutId("results-viewport", TW(Viewport, Expand), func() {
+			ContainerWithKey("results-viewport", Attrs(Viewport, Expand), func() {
 				const itemHeight = float32(60.0)
 
 				viewRow := func(i int, width float32) {
@@ -165,78 +177,83 @@ func RootView() {
 					isSelected := i == state.SelectedIndex
 
 					// Row Styling
-					rowAttrs := TW(Row, Expand, CrossMid, FixHeight(itemHeight), Pad2(10, 20), Bo(0, 0, 0, 1), BW(1))
+					rowAttrs := Attrs(Row, Expand, CrossMid, FixHeight(itemHeight), Pad2(10, 20), BorderColor(0, 0, 0, 1), BorderWidth(1))
 
-					Layout(rowAttrs, func() {
+					Container(rowAttrs, func() {
+						if IsClicked() {
+							eng.SetSelectedIndex(i)
+							RequestNextFrame()
+						}
+
 						if isSelected {
-							ModAttrs(BG(210, 80, 50, 1)) // Blue-ish highlight
+							ModAttrs(Background(210, 80, 50, 1)) // Blue-ish highlight
 						} else if IsHovered() {
-							ModAttrs(BG(0, 0, 20, 1)) // Dark grey hover
+							ModAttrs(Background(0, 0, 20, 1)) // Dark grey hover
 						}
 
 						// Color Selection for Text (White on Blue, Grey otherwise)
-						nameColor := Clr(0, 0, 90, 1)
-						pathColor := Clr(0, 0, 50, 1)
-						subTextColor := Clr(0, 0, 40, 1)
-						branchColor := Clr(0, 0, 60, 1)
-						iconColor := Clr(200, 40, 70, 1)
+						nameColor := TextColor(0, 0, 90, 1)
+						pathColor := TextColor(0, 0, 50, 1)
+						subTextColor := TextColor(0, 0, 40, 1)
+						branchColor := TextColor(0, 0, 60, 1)
+						iconColor := TextColor(200, 40, 70, 1)
 
 						if isSelected {
-							nameColor = Clr(0, 0, 100, 1)
-							pathColor = Clr(0, 0, 90, 1)
-							subTextColor = Clr(0, 0, 85, 1)
-							branchColor = Clr(0, 0, 100, 1)
-							iconColor = Clr(0, 0, 100, 1)
+							nameColor = TextColor(0, 0, 100, 1)
+							pathColor = TextColor(0, 0, 90, 1)
+							subTextColor = TextColor(0, 0, 85, 1)
+							branchColor = TextColor(0, 0, 100, 1)
+							iconColor = TextColor(0, 0, 100, 1)
 						}
 
 						// Main row structure - clean and flat
 						// Repo Icon
-						Icon(SymFolder, Sz(24), iconColor)
-						Element(TW(FixWidth(16)))
+						Icon(SymFolder, FontSize(24), iconColor)
+						Element(Attrs(FixWidth(16)))
 
 						// Text Column
-						Layout(TW(Expand, Grow(1), Spacing(4)), func() {
+						Container(Attrs(Expand, Grow(1), Spacing(4)), func() {
 							// Top Row: Name and Branch
-							Layout(TW(Row, CrossMid, Gap(8)), func() {
-								Label(repo.Name, FontWeight(WeightBold), Sz(16), nameColor)
+							Container(Attrs(Row, CrossMid, Gap(8)), func() {
+								Label(repo.Name, FontWeight(WeightBold), FontSize(16), nameColor)
 
-								Layout(TW(BG(0, 0, 10, 0.5), BR(4), Pad2(2, 6)), func() {
-									Label(repo.Branch, Sz(12), branchColor)
+								Container(Attrs(Background(0, 0, 10, 0.5), Corners(4), Pad2(2, 6)), func() {
+									Label(repo.Branch, FontSize(12), branchColor)
 								})
 
 								// Show cached age
 								Filler(1)
-								Label(repo.CachedAge, Sz(12), subTextColor)
+								Label(repo.CachedAge, FontSize(12), subTextColor)
 							})
 
 							// Bottom Row: Path or Commit Msg
-							Label(repo.Path, Sz(12), pathColor, Fonts(Monospace...))
+							Label(repo.Path, FontSize(12), pathColor, Fonts(Monospace...))
 						})
 
 						// Shortcut Hints (only on selected row)
 						if isSelected {
-							Layout(TW(Row, CrossMid, Gap(8)), func() {
-								hintAttrs := TW(Row, CrossMid, Gap(4), BG(0, 0, 10, 0.3), Pad2(4, 8), BR(4))
+							Container(Attrs(Row, CrossMid, Gap(8)), func() {
+								hintAttrs := Attrs(Row, CrossMid, Gap(4), Background(0, 0, 10, 0.3), Pad2(4, 8), Corners(4))
 
 								// Editor Shortcut
-								Layout(hintAttrs, func() {
-									Label("↵", FontWeight(WeightBold), Sz(12), Clr(0, 0, 95, 1))
-									Icon(SymCode, Sz(12), Clr(0, 0, 95, 1))
-									Label("Editor", Sz(12), Clr(0, 0, 95, 1))
+								Container(hintAttrs, func() {
+									Label("↵", FontWeight(WeightBold), FontSize(12), TextColor(0, 0, 95, 1))
+									Icon(SymCode, FontSize(12), TextColor(0, 0, 95, 1))
+									Label("Editor", FontSize(12), TextColor(0, 0, 95, 1))
 								})
 
 								// Terminal Shortcut
-								Layout(hintAttrs, func() {
-									Label("⌘T", FontWeight(WeightBold), Sz(12), Clr(0, 0, 95, 1))
-									Icon(SymExternal, Sz(12), Clr(0, 0, 95, 1))
-									Label("Terminal", Sz(12), Clr(0, 0, 95, 1))
+								Container(hintAttrs, func() {
+									Label("⌘T", FontWeight(WeightBold), FontSize(12), TextColor(0, 0, 95, 1))
+									Icon(SymExternal, FontSize(12), TextColor(0, 0, 95, 1))
+									Label("Terminal", FontSize(12), TextColor(0, 0, 95, 1))
 								})
 
 								// Finder Shortcut
-								Layout(hintAttrs, func() {
-									Label("⌘O", FontWeight(WeightBold), Sz(12), Clr(0, 0, 95, 1))
-									Icon(SymFolder, Sz(12), Clr(0, 0, 95, 1))
-									Label("Finder", Sz(12), Clr(0, 0, 95, 1))
+								Container(hintAttrs, func() {
+									Label("⌘O", FontWeight(WeightBold), FontSize(12), TextColor(0, 0, 95, 1))
+									Icon(SymFolder, FontSize(12), TextColor(0, 0, 95, 1))
+									Label("Finder", FontSize(12), TextColor(0, 0, 95, 1))
 								})
 							})
 						}
