@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -110,15 +111,6 @@ func RootView() {
 						pendingSearchQuery = ""
 						RequestNextFrame() // Trigger UI redraw after search results change
 					})
-				}
-
-				// Scanning indicator - always reserve space to prevent button movement
-				if state.IsScanning {
-					Icon(SymClock)
-					Label("Scanning...", FontSize(12), TextColor(0, 0, 60, 1))
-				} else {
-					// Spacer to keep buttons in same position
-					Element(Attrs(FixWidth(20)))
 				}
 
 				// Refresh button
@@ -271,6 +263,9 @@ func RootView() {
 				VirtualListWithScroll(len(state.FilteredRepos), entryId, entryHeight, viewRow, state.SelectedIndex)
 			})
 		})
+
+		// Bottom status bar - a home for scanning progress and future status text.
+		StatusBar(state)
 	})
 
 	if showSettings {
@@ -280,6 +275,23 @@ func RootView() {
 	if showUpdateDialog {
 		UpdateDialog()
 	}
+}
+
+// StatusBar renders a thin bar along the bottom of the window. It shows
+// scanning progress while a scan is running and the repo count otherwise;
+// add more status text here as the app grows.
+func StatusBar(state engine.State) {
+	barAttrs := Attrs(Expand, Row, CrossMid, Gap(6), Pad2(7, 12),
+		Background(0, 0, 12, 1), BorderColor(0, 0, 0, 1), BorderWidth(1))
+
+	Container(barAttrs, func() {
+		if state.IsScanning {
+			Icon(SymClock, FontSize(13), TextColor(0, 0, 60, 1))
+			Label("Scanning for repositories…", FontSize(13), TextColor(0, 0, 60, 1))
+		} else {
+			Label(fmt.Sprintf("%d repositories", len(state.FilteredRepos)), FontSize(13), TextColor(0, 0, 45, 1))
+		}
+	})
 }
 
 func maybeBlurIdleFocus() {
