@@ -16,8 +16,8 @@ import (
 // Build-time version information (set via ldflags)
 var (
 	version = "dev"
-	commit  = "unknown"
-	date    = "unknown"
+	commit  = "unknown" //nolint:unused // injected via -ldflags at release build
+	date    = "unknown" //nolint:unused // injected via -ldflags at release build
 
 	scanMu     sync.Mutex
 	scanCancel context.CancelFunc

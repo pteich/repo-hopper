@@ -40,7 +40,7 @@ func SettingsDialog() {
 		// and Float(0,0) to anchor it to top-left regardless of where was called.
 		overlayAttrs := Attrs(
 			Float(0, 0),
-			FixSizeVec(WindowSize),
+			FixSizeVec(GetHost().WindowSize),
 			Center,   // Center children horizontally
 			CrossMid, // Center children vertically
 			Background(0, 0, 0, 0.7),
@@ -100,13 +100,13 @@ func SettingsDialog() {
 				Container(Attrs(Row, Expand, CrossMid, Gap(10)), func() {
 					Filler(1)
 
-					if ButtonExt("Cancel", ButtonAttrs{}) {
+					if ButtonExt("Cancel", ButtonAttrs{}, DefaultButtonLook()) {
 						showSettings = false
 						initialized = false
 						validationErr = ""
 					}
 
-					if ButtonExt("Save & Re-scan", ButtonAttrs{Accent: Vec4{210, 80, 50, 1}}) {
+					if ButtonExt("Save & Re-scan", ButtonAttrs{Accent: Vec4{210, 80, 50, 1}}, DefaultButtonLook()) {
 						// Validate and parse integers
 						rescanVal, err := strconv.Atoi(rescanStr)
 						if err != nil || rescanVal < 0 {

@@ -5,8 +5,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/cli/browser"
-
 	"github.com/pteich/repo-hopper/internal/actions"
 	"github.com/pteich/repo-hopper/internal/config"
 	"github.com/pteich/repo-hopper/internal/engine"
@@ -49,11 +47,6 @@ var lastInteractionAt time.Time
 
 const idleFocusBlurAfter = 10 * time.Second
 
-// OpenURL opens a URL in the default browser using the OS default handler.
-func OpenURL(url string) {
-	_ = browser.OpenURL(url)
-}
-
 // fullWidthTextInput renders a TextInput that fills its container's width.
 // TextInput defaults to ~10em; we set MinWidth from the enclosing container's
 // resolved width (last frame's, so it self-corrects on resize). Call inside a
@@ -68,7 +61,7 @@ func fullWidthTextInput(buf *string) {
 
 // RootView is called every frame by Shirei.
 func RootView() {
-	defer DebugPanel(true)
+	defer DebugPanel()
 	defer PopupsHost()
 
 	state := eng.GetState()
@@ -117,7 +110,7 @@ func RootView() {
 				if ButtonExt("", ButtonAttrs{
 					Icon:     SymRefresh,
 					TextSize: 14,
-				}) {
+				}, DefaultCtrlButtonLook()) {
 					eng.ClearRepos()
 					if OnSettingsChanged != nil {
 						OnSettingsChanged(*settings)
@@ -128,7 +121,7 @@ func RootView() {
 				if ButtonExt("", ButtonAttrs{
 					Icon:     SymCog,
 					TextSize: 14,
-				}) {
+				}, DefaultCtrlButtonLook()) {
 					showSettings = true
 				}
 
@@ -136,7 +129,7 @@ func RootView() {
 				if ButtonExt("", ButtonAttrs{
 					Icon:     SymDownload,
 					TextSize: 14,
-				}) {
+				}, DefaultCtrlButtonLook()) {
 					showUpdateDialog = true
 					go func() {
 						if OnUpdateCheckRequested != nil {
@@ -295,11 +288,12 @@ func StatusBar(state engine.State) {
 }
 
 func maybeBlurIdleFocus() {
-	if FrameInput.Mouse != 0 ||
-		FrameInput.Motion != (Vec2{}) ||
-		FrameInput.Scroll != (Vec2{}) ||
-		FrameInput.Key != 0 ||
-		FrameInput.Text != "" {
+	frameInput := GetFrameInput()
+	if frameInput.Mouse != 0 ||
+		frameInput.Motion != (Vec2{}) ||
+		frameInput.Scroll != (Vec2{}) ||
+		frameInput.Key != 0 ||
+		frameInput.Text != "" {
 		lastInteractionAt = time.Now()
 		return
 	}
@@ -313,8 +307,9 @@ func maybeBlurIdleFocus() {
 
 func handleKeyboardInput() {
 	state := eng.GetState()
+	frameInput := GetFrameInput()
 
-	switch FrameInput.Key {
+	switch frameInput.Key {
 	case KeyEscape:
 		if showSettings {
 			showSettings = false
@@ -335,8 +330,8 @@ func handleKeyboardInput() {
 	}
 
 	// Complex Modifiers (e.g. Cmd+E, Cmd+T, Cmd+O, Cmd+, Cmd+R)
-	if InputState.Modifiers&ModSuper != 0 || InputState.Modifiers&ModCmd != 0 {
-		switch FrameInput.Key {
+	if GetInputState().Modifiers&ModSuper != 0 || GetInputState().Modifiers&ModCmd != 0 {
+		switch frameInput.Key {
 		case KeyE:
 			if state.SelectedIndex >= 0 && state.SelectedIndex < len(state.FilteredRepos) {
 				repo := state.FilteredRepos[state.SelectedIndex]

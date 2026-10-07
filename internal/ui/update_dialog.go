@@ -27,7 +27,7 @@ func UpdateDialog() {
 		// Dark overlay
 		overlayAttrs := Attrs(
 			Float(0, 0),
-			FixSizeVec(WindowSize),
+			FixSizeVec(GetHost().WindowSize),
 			Center,
 			CrossMid,
 			Background(0, 0, 0, 0.7),
@@ -85,7 +85,7 @@ func UpdateDialog() {
 					Filler(1)
 
 					// Skip button
-					if ButtonExt("Skip This Version", ButtonAttrs{}) {
+					if ButtonExt("Skip This Version", ButtonAttrs{}, DefaultButtonLook()) {
 						if OnSkipUpdateVersion != nil {
 							OnSkipUpdateVersion(updateInfo.LatestVersion)
 						}
@@ -94,13 +94,13 @@ func UpdateDialog() {
 					}
 
 					// Remind Later button
-					if ButtonExt("Remind Later", ButtonAttrs{}) {
+					if ButtonExt("Remind Later", ButtonAttrs{}, DefaultButtonLook()) {
 						showUpdateDialog = false
 						updateInfo = nil
 					}
 
 					// Download button
-					if ButtonExt("Download Now", ButtonAttrs{Accent: Vec4{210, 80, 50, 1}}) {
+					if ButtonExt("Download Now", ButtonAttrs{Accent: Vec4{210, 80, 50, 1}}, DefaultButtonLook()) {
 						showUpdateDialog = false
 						// Open release URL in browser
 						OpenURL(updateInfo.ReleaseURL)
@@ -114,7 +114,7 @@ func UpdateDialog() {
 
 // CheckForUpdatesButton shows a button that triggers update check
 func CheckForUpdatesButton() {
-	if ButtonExt("Check for Updates", ButtonAttrs{}) {
+	if ButtonExt("Check for Updates", ButtonAttrs{}, DefaultButtonLook()) {
 		showUpdateDialog = true
 		go func() {
 			// Trigger update check - will show dialog if update found

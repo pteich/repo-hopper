@@ -36,7 +36,7 @@ func VirtualListWithScroll(itemCount int, itemIdFn func(int) any, itemHeightFn I
 	}
 
 	computeAverageHeight := func(width float32) float32 {
-		var topN int = min(N, itemCount)
+		topN := min(N, itemCount)
 		var seenHeight float32
 		for i := 0; i < topN; i++ {
 			seenHeight += max(1, itemHeightFn(i, width))
@@ -178,8 +178,8 @@ func VirtualListWithScroll(itemCount int, itemIdFn func(int) any, itemHeightFn I
 
 		var renderedHeight = -(state.ScrollOffset - spaceBefore)
 
-		var startIndex int = first.Index
-		var endIndex int = itemCount
+		var startIndex = first.Index
+		var endIndex = itemCount
 
 		for idx := startIndex; idx < itemCount; idx++ {
 			endIndex = idx + 1

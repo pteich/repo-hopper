@@ -1,0 +1,16 @@
+version: "2"
+
+linters:
+  settings:
+    staticcheck:
+      checks:
+        - all
+        - -ST1000
+        - -ST1003
+        - -ST1016
+        - -ST1020
+        - -ST1021
+        - -ST1022
+        # shirei is designed for dot-imports (see its demos); the immediate-mode
+        # UI style used throughout internal/ui relies on it.
+        - -ST1001
