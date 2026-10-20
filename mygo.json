@@ -1,0 +1,15 @@
+{
+  "name": "RepoHopper",
+  "identifier": "com.github.pteich.repohopper",
+  "version": "0.4.0",
+  "icon": "appicon.png",
+  "main": "./cmd/desktop",
+  "out": "build",
+  "updates": {
+    "publicKey": "16Q9auHJ3sEfWoPapW9SJrvfs/p5/ri+ybMBt9YSH+U=",
+    "github": "pteich/repo-hopper"
+  },
+  "macos": {
+    "infoPlist": { "LSUIElement": true }
+  }
+}

@@ -23,13 +23,20 @@ Repo Hopper scans your configured directories for Git repositories and presents 
 
 ## Keyboard Shortcuts
 
+Repo Hopper lives in the menu bar and floats over every app, like Spotlight: press **`⌥⇧Space`** anywhere to show or hide it (change it in Settings). It hides again when you open a repo or click elsewhere. The menu-bar icon offers Settings, Check for Updates, Open at Login and Quit. Installed apps update themselves from GitHub releases.
+
+
 | Key | Action |
 |-----|--------|
 | `↑` / `↓` | Navigate the repo list |
 | `Enter` | Open selected repo in your configured editor |
 | `⌘T` | Open selected repo in your terminal |
 | `⌘O` | Open selected repo in Finder / file manager |
-| `Esc` | Quit |
+| `⌘E` | Open selected repo in your editor |
+| `⌘R` | Re-scan |
+| `⌘,` | Settings |
+| `Esc` | Clear the search, or hide Repo Hopper |
+| `⌘Q` | Quit |
 
 ---
 
@@ -53,6 +60,7 @@ Repo Hopper reads its config from `~/.config/repo-hopper/settings.json`. Create 
 | `scan_dirs` | List of root directories to scan for Git repos | — |
 | `editor` | CLI command for your editor (`code`, `goland`, `vim`, …) | `code` |
 | `terminal` | Terminal app name (`Terminal`, `iTerm`, `Warp`, …) | `Terminal` |
+| `global_shortcut` | Shows and hides Repo Hopper from any app | `Alt+Shift+Space` |
 
 ---
 
@@ -61,7 +69,8 @@ Repo Hopper reads its config from `~/.config/repo-hopper/settings.json`. Create 
 ### Run directly (development)
 
 ```bash
-make run
+make dev     # development app bundle, rebuilt as you edit
+make run     # or plain `go run`
 ```
 
 ### Build a standalone binary
@@ -74,7 +83,6 @@ make build
 ### Build & install as a macOS .app
 
 ```bash
-make deps    # installs the gogio bundler tool (one-time)
 make install # builds RepoHopper.app and copies it to /Applications
 ```
 
@@ -84,7 +92,7 @@ make install # builds RepoHopper.app and copies it to /Applications
 
 ## Platform support
 
-Repo Hopper is written in Go and designed to be cross-platform — the GUI layer is built on [Gio](https://gioui.org/) / [Shirei](https://judi.systems/shirei/), which supports macOS, Linux, and Windows.
+Repo Hopper is written in Go and designed to be cross-platform — the GUI layer is built on [MyGo](https://github.com/egoist/mygo)'s native UI, which supports macOS, Linux, and Windows and needs no cgo, so every platform builds from any machine (`make build-all`).
 
 **Currently only tested on macOS.** Linux and Windows support is intended and the underlying OS actions (open terminal, open file manager, open editor) already have platform-specific implementations — but these paths haven't been verified yet. Contributions welcome!
 
@@ -93,7 +101,7 @@ Repo Hopper is written in Go and designed to be cross-platform — the GUI layer
 ## Tech stack
 
 - **Go** — single binary, fast startup, easy cross-compilation
-- **[Shirei](https://judi.systems/shirei/)** (built on [Gio](https://gioui.org/)) — immediate-mode GUI framework
+- **[MyGo](https://github.com/egoist/mygo)** — native UI drawn on the GPU, pure Go (no cgo)
 - **[fuzzy](https://github.com/sahilm/fuzzy)** — high-performance fuzzy matching for the search bar
 - Concurrent directory scanning via `filepath.WalkDir` + goroutines
 

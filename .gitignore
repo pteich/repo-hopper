@@ -3,3 +3,5 @@ repo-hopper*
 **/*.app
 .idea
 .DS_Store
+/build/
+/.mygo/

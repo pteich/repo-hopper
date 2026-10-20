@@ -14,7 +14,8 @@ func GetRepoInfo(path string) (msg string, t time.Time, branch string, err error
 	// git log -1 --format="%an, %ar: %s" could be used, but we want structured data:
 	// %s is subject
 	// %cI is committer date, strict ISO 8601 format
-	cmd := exec.Command("git", "-C", path, "log", "-1", "--format=%s|%cI")
+	// The date goes first: subjects may contain "|".
+	cmd := exec.Command("git", "-C", path, "log", "-1", "--format=%cI|%s")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 
@@ -24,14 +25,11 @@ func GetRepoInfo(path string) (msg string, t time.Time, branch string, err error
 	}
 
 	parts := strings.SplitN(strings.TrimSpace(out.String()), "|", 2)
+	if parsedTime, err := time.Parse(time.RFC3339, parts[0]); err == nil {
+		t = parsedTime
+	}
 	if len(parts) == 2 {
-		msg = parts[0]
-		parsedTime, err := time.Parse(time.RFC3339, parts[1])
-		if err == nil {
-			t = parsedTime
-		}
-	} else if len(parts) == 1 {
-		msg = parts[0]
+		msg = parts[1]
 	}
 
 	// Get current branch

@@ -15,10 +15,8 @@ type Settings struct {
 	RescanIntervalMin int      `json:"rescan_interval_min"`
 	MaxDepth          int      `json:"max_depth"`
 	ExcludePatterns   []string `json:"exclude_patterns"`
-	SortBy            string   `json:"sort_by"` // "last_commit" or "name"
-	CheckForUpdates   bool     `json:"check_for_updates"`   // Whether to check for updates
-	UpdateCheckHours int      `json:"update_check_hours"`  // How often to check (in hours, 0 = always)
-	SkipUpdateVersion string   `json:"skip_update_version"` // Version to skip update prompt for
+	SortBy            string   `json:"sort_by"`         // "last_commit" or "name"
+	GlobalShortcut    string   `json:"global_shortcut"` // shows and hides the panel from any app
 }
 
 // ConfigDir returns the path to ~/.config/repo-hopper/
@@ -52,8 +50,8 @@ func DefaultSettings() Settings {
 		MaxDepth:          6,
 		ExcludePatterns:   []string{"node_modules", "vendor", ".cache", "Library"},
 		SortBy:            "last_commit",
-		CheckForUpdates:   true,
-		UpdateCheckHours:  24, // Check daily by default
+		// Not Alt+Space, which Raycast and PowerToys Run take.
+		GlobalShortcut: "Alt+Shift+Space",
 	}
 }
 
@@ -88,6 +86,9 @@ func Load() Settings {
 	}
 	if s.SortBy == "" {
 		s.SortBy = defaults.SortBy
+	}
+	if s.GlobalShortcut == "" {
+		s.GlobalShortcut = defaults.GlobalShortcut
 	}
 
 	return s

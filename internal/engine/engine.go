@@ -11,6 +11,17 @@ import (
 type Engine struct {
 	state State
 	mu    sync.RWMutex
+
+	// OnChange, if set, is called after the scanner changes the state
+	// (AddRepos, ClearRepos, SetScanning), possibly from another goroutine,
+	// so a UI can redraw. Set it before scanning starts.
+	OnChange func()
+}
+
+func (e *Engine) changed() {
+	if e.OnChange != nil {
+		e.OnChange()
+	}
 }
 
 // New creates a new Engine with an initial empty state.
@@ -118,6 +129,7 @@ func (e *Engine) SetSelectedIndex(index int) {
 
 // AddRepos allows adding newly discovered repos to the engine safely.
 func (e *Engine) AddRepos(repos []Repo) {
+	defer e.changed() // runs after the unlock below
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -157,6 +169,7 @@ func (e *Engine) AddRepos(repos []Repo) {
 
 // ClearRepos resets the repo list, used before a re-scan.
 func (e *Engine) ClearRepos() {
+	defer e.changed() // runs after the unlock below
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.state.AllRepos = []Repo{}
@@ -166,6 +179,7 @@ func (e *Engine) ClearRepos() {
 
 // SetScanning updates the current scanning status
 func (e *Engine) SetScanning(isScanning bool) {
+	defer e.changed() // runs after the unlock below
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.state.IsScanning = isScanning

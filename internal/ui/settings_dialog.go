@@ -1,164 +1,123 @@
 package ui
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
 
+	"github.com/egoist/mygo/ui"
+
 	"github.com/pteich/repo-hopper/internal/config"
-
-	. "go.hasen.dev/shirei"
-	. "go.hasen.dev/shirei/widgets"
 )
 
-// Internal state for the settings dialog text fields
-var (
-	scanDirsStr   string
-	editorStr     string
-	terminalStr   string
-	rescanStr     string
-	maxDepthStr   string
-	excludeStr    string
-	initialized   bool
-	validationErr string
-)
+// settingsForm holds the settings dialog's text fields while it is open.
+var settingsForm struct {
+	scanDirs, editor, terminal, rescan, maxDepth, exclude, shortcut string
+	err                                                             string
+}
 
-func SettingsDialog() {
-	if !initialized {
-		scanDirsStr = strings.Join(settings.ScanDirs, ", ")
-		editorStr = settings.Editor
-		terminalStr = settings.Terminal
-		rescanStr = strconv.Itoa(settings.RescanIntervalMin)
-		maxDepthStr = strconv.Itoa(settings.MaxDepth)
-		excludeStr = strings.Join(settings.ExcludePatterns, ", ")
-		initialized = true
-		validationErr = ""
-	}
+// openSettings fills the form from the current settings and shows it.
+func openSettings() {
+	settingsForm.scanDirs = strings.Join(settings.ScanDirs, ", ")
+	settingsForm.editor = settings.Editor
+	settingsForm.terminal = settings.Terminal
+	settingsForm.rescan = strconv.Itoa(settings.RescanIntervalMin)
+	settingsForm.maxDepth = strconv.Itoa(settings.MaxDepth)
+	settingsForm.exclude = strings.Join(settings.ExcludePatterns, ", ")
+	settingsForm.shortcut = settings.GlobalShortcut
+	settingsForm.err = ""
+	showSettings = true
+}
 
-	Popup(func() {
-		// Dark overlay - we use WindowSize directly to ensure it covers the whole screen
-		// and Float(0,0) to anchor it to top-left regardless of where was called.
-		overlayAttrs := Attrs(
-			Float(0, 0),
-			FixSizeVec(GetHost().WindowSize),
-			Center,   // Center children horizontally
-			CrossMid, // Center children vertically
-			Background(0, 0, 0, 0.7),
-		)
+func settingsDialog(c *ui.Context) {
+	f := &settingsForm
+	ui.Column(c).Width(480).Gap(14).Children(func() {
+		ui.Text(c, "Settings").FontSize(20).Bold()
 
-		Container(overlayAttrs, func() {
-			// Modal panel - Let it auto-size completely based on its children!
-			modalAttrs := Attrs(
-				FixWidth(500),
-				Background(0, 0, 15, 1),
-				Corners(8),
-				Pad(20),
-				Spacing(15),
-				BorderColor(0, 0, 30, 1),
-				BorderWidth(1),
-				BoxShadow(20),
-			)
+		ui.Field(c, "Scan Directories (comma separated)", func() {
+			ui.TextInput(c, &f.scanDirs).AutoFocus()
+		}).Description("e.g. /Users/peter/github, /tmp/repos")
+		ui.Row(c).Gap(20).Children(func() {
+			ui.Field(c, "Editor Command", func() { ui.TextInput(c, &f.editor) }).
+				Description("e.g. code, goland, nvim").Grow(1).Basis(0)
+			ui.Field(c, "Terminal Command", func() { ui.TextInput(c, &f.terminal) }).
+				Description("e.g. Terminal, iTerm, Warp").Grow(1).Basis(0)
+		})
+		ui.Row(c).Gap(20).Children(func() {
+			ui.Field(c, "Re-scan Interval (min)", func() { ui.TextInput(c, &f.rescan) }).Grow(1).Basis(0)
+			ui.Field(c, "Max Scan Depth", func() { ui.TextInput(c, &f.maxDepth) }).Grow(1).Basis(0)
+		})
+		ui.Field(c, "Exclude Patterns (comma separated)", func() { ui.TextInput(c, &f.exclude) }).
+			Description("e.g. node_modules, vendor, .cache")
+		ui.Field(c, "Global Shortcut", func() { ui.TextInput(c, &f.shortcut) }).
+			Description("Shows and hides Repo Hopper from any app, e.g. Alt+Shift+Space, CmdOrCtrl+Shift+R")
 
-			Container(modalAttrs, func() {
-				Label("Settings", FontWeight(WeightBold), FontSize(20), TextColor(0, 0, 100, 1))
+		if f.err != "" {
+			ui.Text(c, f.err).FontSize(12).TextColor(c.Theme().Danger)
+		}
 
-				// Form Fields
-				formField := func(label string, buf *string, hint string) {
-					Container(Attrs(Expand, Spacing(5)), func() {
-						Label(label, FontSize(14), TextColor(0, 0, 70, 1))
-						Container(Attrs(Expand), func() {
-							fullWidthTextInput(buf)
-						})
-						if hint != "" {
-							Label(hint, FontSize(11), TextColor(0, 0, 40, 1))
-						}
-					})
-				}
-
-				formField("Scan Directories (comma separated)", &scanDirsStr, "e.g. /Users/peter/github, /tmp/repos")
-				formField("Editor Command", &editorStr, "e.g. code, goland, nvim")
-				formField("Terminal Command", &terminalStr, "e.g. Terminal, iTerm, Warp")
-
-				Container(Attrs(Row, Expand, Gap(20)), func() {
-					// Grow(1) makes the two fields split the row evenly.
-					Container(Attrs(Expand, Grow(1)), func() {
-						formField("Re-scan Interval (min)", &rescanStr, "")
-					})
-					Container(Attrs(Expand, Grow(1)), func() {
-						formField("Max Scan Depth", &maxDepthStr, "")
-					})
-				})
-
-				formField("Exclude Patterns (comma separated)", &excludeStr, "e.g. node_modules, vendor, .cache")
-
-				// Validation error display
-				if validationErr != "" {
-					Label(validationErr, FontSize(12), TextColor(80, 0, 0, 1))
-				}
-
-				// Buttons
-				Container(Attrs(Row, Expand, CrossMid, Gap(10)), func() {
-					Filler(1)
-
-					if ButtonExt("Cancel", ButtonAttrs{}, DefaultButtonLook()) {
-						showSettings = false
-						initialized = false
-						validationErr = ""
-					}
-
-					if ButtonExt("Save & Re-scan", ButtonAttrs{Accent: Vec4{210, 80, 50, 1}}, DefaultButtonLook()) {
-						// Validate and parse integers
-						rescanVal, err := strconv.Atoi(rescanStr)
-						if err != nil || rescanVal < 0 {
-							validationErr = "Invalid re-scan interval. Must be a non-negative integer."
-							log.Printf("Invalid rescan interval: %s", rescanStr)
-							return
-						}
-
-						depthVal, err := strconv.Atoi(maxDepthStr)
-						if err != nil || depthVal <= 0 {
-							validationErr = "Invalid max depth. Must be a positive integer."
-							log.Printf("Invalid max depth: %s", maxDepthStr)
-							return
-						}
-
-						// Validate scan directories
-						scanDirs := splitAndTrim(scanDirsStr)
-						if len(scanDirs) == 0 {
-							validationErr = "At least one scan directory is required."
-							return
-						}
-
-						// All validations passed
-						settings.ScanDirs = scanDirs
-						settings.Editor = editorStr
-						settings.Terminal = terminalStr
-						settings.RescanIntervalMin = rescanVal
-						settings.MaxDepth = depthVal
-						settings.ExcludePatterns = splitAndTrim(excludeStr)
-
-						_ = config.Save(*settings)
-
-						if OnSettingsChanged != nil {
-							OnSettingsChanged(*settings)
-						}
-
-						showSettings = false
-						initialized = false
-						validationErr = ""
-					}
-				})
-			})
+		ui.Row(c).Gap(10).Justify(ui.End).Children(func() {
+			if ui.Button(c, "Cancel").Clicked() {
+				showSettings = false
+			}
+			if ui.PrimaryButton(c, "Save & Re-scan").Clicked() {
+				saveSettings()
+			}
 		})
 	})
 }
 
+// saveSettings validates the form, saves it and rescans; on an invalid
+// field it keeps the dialog open with the error.
+func saveSettings() {
+	f := &settingsForm
+	rescanVal, err := strconv.Atoi(strings.TrimSpace(f.rescan))
+	if err != nil || rescanVal < 0 {
+		f.err = "Invalid re-scan interval. Must be a non-negative integer."
+		return
+	}
+	depthVal, err := strconv.Atoi(strings.TrimSpace(f.maxDepth))
+	if err != nil || depthVal <= 0 {
+		f.err = "Invalid max depth. Must be a positive integer."
+		return
+	}
+	scanDirs := splitAndTrim(f.scanDirs)
+	if len(scanDirs) == 0 {
+		f.err = "At least one scan directory is required."
+		return
+	}
+	acc := strings.TrimSpace(f.shortcut)
+	if acc == "" {
+		f.err = "A global shortcut is required."
+		return
+	}
+	if err := setShortcut(acc); err != nil {
+		f.err = fmt.Sprintf("Cannot use %s: %v", acc, err)
+		return
+	}
+
+	settings.ScanDirs = scanDirs
+	settings.Editor = f.editor
+	settings.Terminal = f.terminal
+	settings.RescanIntervalMin = rescanVal
+	settings.MaxDepth = depthVal
+	settings.ExcludePatterns = splitAndTrim(f.exclude)
+	settings.GlobalShortcut = acc
+
+	if err := config.Save(*settings); err != nil {
+		log.Printf("saving settings: %v", err)
+	}
+	if OnSettingsChanged != nil {
+		OnSettingsChanged(*settings)
+	}
+	showSettings = false
+}
+
 func splitAndTrim(s string) []string {
-	parts := strings.Split(s, ",")
 	var res []string
-	for _, p := range parts {
-		t := strings.TrimSpace(p)
-		if t != "" {
+	for p := range strings.SplitSeq(s, ",") {
+		if t := strings.TrimSpace(p); t != "" {
 			res = append(res, t)
 		}
 	}
