@@ -131,3 +131,28 @@ func TestActionButtons(t *testing.T) {
 		t.Errorf("Enter: opened %v", opened)
 	}
 }
+
+func TestSettingsFolders(t *testing.T) {
+	tt := newTester(t)
+	settings.ScanDirs = []string{"/src/a", "/src/b"}
+	settings.ExcludePatterns = []string{"node_modules"}
+	settings.MaxDepth, settings.RescanIntervalMin = 6, 5
+	settings.GlobalShortcut = "Alt+Shift+Space"
+	shortcut = settings.GlobalShortcut // registered already: saving leaves it
+	defer func() { shortcut = "" }()
+	saved := 0
+	OnSettingsChanged = func(config.Settings) { saved++ }
+	defer func() { OnSettingsChanged = nil }()
+	t.Setenv("HOME", t.TempDir()) // config.Save writes under it
+
+	tt.Key(ui.Cmd, ui.KeyComma)
+	if err := tt.Click("Remove /src/a"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click("Save & Re-scan"); err != nil {
+		t.Fatal(err)
+	}
+	if saved != 1 || len(settings.ScanDirs) != 1 || settings.ScanDirs[0] != "/src/b" {
+		t.Errorf("saved %d times, scan dirs %v, form error %q", saved, settings.ScanDirs, settingsForm.err)
+	}
+}

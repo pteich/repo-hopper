@@ -33,12 +33,22 @@ func newPanel() *mygo.Window {
 		Content:       ui.View(view),
 	})
 	// Hide rather than close, on Escape, Cmd-W or Alt-F4, and when the user
-	// goes elsewhere: it shows again at once, as it was. Quitting destroys it.
+	// goes elsewhere: it shows again at once, as it was. A quit closes every
+	// window first and stops when one refuses, so let the close through then.
+	quitting := false
+	mygo.App.OnBeforeQuit(func(*mygo.QuitEvent) { quitting = true })
 	panel.OnClose(func(e *mygo.CloseEvent) {
+		if quitting {
+			return
+		}
 		e.PreventDefault()
 		panel.Hide()
 	})
-	panel.OnBlur(panel.Hide)
+	panel.OnBlur(func() {
+		if !pickingFolders { // the folder picker's sheet takes the focus too
+			panel.Hide()
+		}
+	})
 	return panel
 }
 
