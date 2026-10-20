@@ -6,7 +6,6 @@ import (
 	"runtime"
 
 	"github.com/egoist/mygo"
-	"github.com/egoist/mygo/plugins/updater"
 	"github.com/egoist/mygo/plugins/updater/native"
 	"github.com/egoist/mygo/ui"
 
@@ -114,8 +113,9 @@ func view(c *ui.Context) {
 			if iconButton(c, settingsIcon, "Settings").Clicked() {
 				openSettings()
 			}
-			if iconButton(c, downloadIcon, "Check for Updates").Clicked() {
-				updater.CheckForUpdates()
+			// Updates: the tray menu's Check for Updates, and daily in the background.
+			if iconButton(c, quitIcon, "Quit Repo Hopper ("+cmdKey+"Q)").Clicked() {
+				mygo.App.Quit()
 			}
 		})
 		ui.Divider(c)
