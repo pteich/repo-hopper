@@ -51,27 +51,7 @@ func (e *Engine) UpdateSearch(query string) {
 	defer e.mu.Unlock()
 
 	e.state.SearchQuery = query
-
-	if query == "" {
-		e.state.FilteredRepos = make([]Repo, len(e.state.AllRepos))
-		copy(e.state.FilteredRepos, e.state.AllRepos)
-		SortRepos(e.state.FilteredRepos)
-	} else {
-		repoNames := make([]string, len(e.state.AllRepos))
-		for i, r := range e.state.AllRepos {
-			repoNames[i] = r.Name + " " + r.Path
-		}
-
-		matches := fuzzy.Find(query, repoNames)
-
-		e.state.FilteredRepos = make([]Repo, 0, len(matches))
-		for _, m := range matches {
-			e.state.FilteredRepos = append(e.state.FilteredRepos, e.state.AllRepos[m.Index])
-		}
-		// Sort by recently changed rather than fuzzy match score
-		// TODO make this configurable (fuzzy match score vs recently changed)
-		SortRepos(e.state.FilteredRepos)
-	}
+	e.filterLocked()
 
 	// Reset index on new search
 	if len(e.state.FilteredRepos) > 0 {
@@ -135,27 +115,9 @@ func (e *Engine) AddRepos(repos []Repo) {
 
 	e.state.AllRepos = append(e.state.AllRepos, repos...)
 
-	// Re-apply search query to refresh the filtered view
-	query := e.state.SearchQuery
-
-	// Temporarily unlock to call UpdateSearch (which acquires lock), or just do it inline
-	// Inline is safer here
-	if query == "" {
-		e.state.FilteredRepos = make([]Repo, len(e.state.AllRepos))
-		copy(e.state.FilteredRepos, e.state.AllRepos)
-		SortRepos(e.state.FilteredRepos)
-	} else {
-		repoNames := make([]string, len(e.state.AllRepos))
-		for i, r := range e.state.AllRepos {
-			repoNames[i] = r.Name + " " + r.Path
-		}
-		matches := fuzzy.Find(query, repoNames)
-		e.state.FilteredRepos = make([]Repo, 0, len(matches))
-		for _, m := range matches {
-			e.state.FilteredRepos = append(e.state.FilteredRepos, e.state.AllRepos[m.Index])
-		}
-		SortRepos(e.state.FilteredRepos)
-	}
+	// Re-apply search query to refresh the filtered view. Done inline
+	// (not via UpdateSearch) because the lock is already held.
+	e.filterLocked()
 
 	// Safety check for SelectedIndex
 	if len(e.state.FilteredRepos) == 0 {
@@ -185,9 +147,49 @@ func (e *Engine) SetScanning(isScanning bool) {
 	e.state.IsScanning = isScanning
 }
 
-// SortRepos sorts a slice of repos by LastCommitTime descending.
+// SortRepos sorts a slice of repos by last modification (uncommitted edits
+// win over the last commit) descending.
 func SortRepos(repos []Repo) {
+	sortRepos(repos, nil)
+}
+
+// sortRepos sorts by modification time descending, breaking ties by fuzzy
+// match score (best first) when scores are given. Scores line up with repos.
+func sortRepos(repos []Repo, scores []int) {
 	sort.SliceStable(repos, func(i, j int) bool {
-		return repos[i].LastCommitTime.After(repos[j].LastCommitTime)
+		mi, mj := repos[i].ModifiedTime(), repos[j].ModifiedTime()
+		if !mi.Equal(mj) {
+			return mi.After(mj)
+		}
+		return scores != nil && scores[i] > scores[j]
 	})
+}
+
+// filterLocked recomputes FilteredRepos from AllRepos and the current query.
+// The caller must hold e.mu. With a query, results are sorted by modification
+// time first and fuzzy score only breaks ties.
+func (e *Engine) filterLocked() {
+	query := e.state.SearchQuery
+	if query == "" {
+		e.state.FilteredRepos = make([]Repo, len(e.state.AllRepos))
+		copy(e.state.FilteredRepos, e.state.AllRepos)
+		sortRepos(e.state.FilteredRepos, nil)
+		return
+	}
+
+	repoNames := make([]string, len(e.state.AllRepos))
+	for i, r := range e.state.AllRepos {
+		repoNames[i] = r.Name + " " + r.Path
+	}
+
+	matches := fuzzy.Find(query, repoNames)
+
+	filtered := make([]Repo, 0, len(matches))
+	scores := make([]int, len(matches))
+	for j, m := range matches {
+		filtered = append(filtered, e.state.AllRepos[m.Index])
+		scores[j] = m.Score
+	}
+	sortRepos(filtered, scores)
+	e.state.FilteredRepos = filtered
 }

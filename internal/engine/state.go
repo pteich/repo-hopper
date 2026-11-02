@@ -12,18 +12,33 @@ type Repo struct {
 	LastCommitMsg  string    `json:"lastCommitMsg"`
 	LastCommitTime time.Time `json:"lastCommitTime"`
 	Branch         string    `json:"branch"`
-	CachedAge      string    `json:"-"`
+	// Dirty is true when the worktree has modified or untracked files,
+	// and DirtyTime is the newest mtime among them.
+	Dirty     bool      `json:"dirty"`
+	DirtyTime time.Time `json:"dirtyTime,omitempty"`
+	CachedAge string    `json:"-"`
 }
 
-// ComputeAge computes and sets the CachedAge field for the repo.
+// ModifiedTime returns the most recent time the repo is known to have
+// changed: the last uncommitted file edit if any, else the last commit.
+func (r Repo) ModifiedTime() time.Time {
+	if r.Dirty && r.DirtyTime.After(r.LastCommitTime) {
+		return r.DirtyTime
+	}
+	return r.LastCommitTime
+}
+
+// ComputeAge computes and sets the CachedAge field for the repo, based on
+// the time it was last modified (uncommitted edits win over the last commit).
 func (r *Repo) ComputeAge() string {
-	if r.LastCommitTime.IsZero() {
+	modified := r.ModifiedTime()
+	if modified.IsZero() {
 		r.CachedAge = "No commits"
 		return r.CachedAge
 	}
 
 	now := time.Now()
-	d := now.Sub(r.LastCommitTime)
+	d := now.Sub(modified)
 
 	switch {
 	case d < time.Minute:
@@ -48,7 +63,7 @@ func (r *Repo) ComputeAge() string {
 		days := int(d.Hours() / 24)
 		r.CachedAge = fmt.Sprintf("%d days", days)
 	default:
-		r.CachedAge = r.LastCommitTime.Format("Jan 2, 2006")
+		r.CachedAge = modified.Format("Jan 2, 2006")
 	}
 	return r.CachedAge
 }

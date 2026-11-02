@@ -3,7 +3,9 @@ package git
 import (
 	"bytes"
 	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -51,4 +53,31 @@ func GetRepoInfo(path string) (msg string, t time.Time, branch string, err error
 	}
 
 	return msg, t, branch, nil
+}
+
+// GetDirtyState reports whether the worktree at path has uncommitted changes
+// (modified or untracked files), and returns the newest modification time
+// among those files. The time is the zero time when the worktree is clean.
+// Git stores no "dirty date", so file mtimes are the closest proxy; files
+// listed but missing on disk (deleted, staged) are skipped.
+func GetDirtyState(path string) (dirty bool, t time.Time, err error) {
+	out, err := exec.Command("git", "-C", path,
+		"ls-files", "-m", "-o", "--exclude-standard").Output()
+	if err != nil {
+		log.Printf("git ls-files failed for %s: %v", path, err)
+		return false, time.Time{}, err
+	}
+
+	for _, f := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if f == "" {
+			continue
+		}
+		dirty = true
+		if fi, err := os.Stat(filepath.Join(path, f)); err == nil {
+			if fi.ModTime().After(t) {
+				t = fi.ModTime()
+			}
+		}
+	}
+	return dirty, t, nil
 }

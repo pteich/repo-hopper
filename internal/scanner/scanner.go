@@ -80,14 +80,17 @@ func (s *Scanner) Start(ctx context.Context) {
 					continue
 				}
 
-				repo := engine.Repo{
-					Path:           path,
-					Name:           filepath.Base(path),
-					LastCommitMsg:  msg,
-					LastCommitTime: t,
-					Branch:         branch,
-				}
-				repo.ComputeAge()
+			repo := engine.Repo{
+				Path:           path,
+				Name:           filepath.Base(path),
+				LastCommitMsg:  msg,
+				LastCommitTime: t,
+				Branch:         branch,
+			}
+			if dirty, dirtyTime, err := git.GetDirtyState(path); err == nil {
+				repo.Dirty, repo.DirtyTime = dirty, dirtyTime
+			}
+			repo.ComputeAge()
 				parsedRepos <- repo
 			}
 		}()

@@ -160,10 +160,15 @@ func repoRow(c *ui.Context, repo engine.Repo, selected bool) {
 		ui.Column(c).Grow(1).Gap(4).Children(func() {
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, repo.Name).Bold().FontSize(15).TextColor(text).SingleLine()
-				if repo.Branch != "" {
-					ui.Text(c, repo.Branch).FontSize(11).TextColor(text).SingleLine().
-						Padding(1, 6).Radius(4).Background(text.Alpha(0.12))
-				}
+			if repo.Branch != "" {
+				ui.Text(c, repo.Branch).FontSize(11).TextColor(text).SingleLine().
+					Padding(1, 6).Radius(4).Background(text.Alpha(0.12))
+			}
+			// Uncommitted changes: newer than the last commit, so the row
+			// sorts by them too.
+			if repo.Dirty {
+				ui.Text(c, "● changed").FontSize(11).TextColor(t.Warning).SingleLine()
+			}
 			})
 			ui.Text(c, repo.Path).FontSize(12).Font("monospace").TextColor(muted).SingleLine()
 		})

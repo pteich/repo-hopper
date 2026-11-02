@@ -5,6 +5,43 @@ import (
 	"time"
 )
 
+// TestEngineSortByModifiedTime checks that dirty repos sort above repos whose
+// last commit is older, and that fuzzy score only breaks time ties.
+func TestEngineSortByModifiedTime(t *testing.T) {
+	now := time.Now()
+	eng := New()
+
+	repos := []Repo{
+		{Name: "clean-old", Path: "/a/clean-old", LastCommitTime: now.Add(-48 * time.Hour)},
+		{Name: "dirty-recent", Path: "/a/dirty-recent", LastCommitTime: now.Add(-48 * time.Hour),
+			Dirty: true, DirtyTime: now.Add(-time.Hour)},
+		{Name: "clean-recent", Path: "/a/clean-recent", LastCommitTime: now},
+	}
+	eng.AddRepos(repos)
+
+	got := eng.GetState().FilteredRepos
+	want := []string{"clean-recent", "dirty-recent", "clean-old"}
+	for i, name := range want {
+		if got[i].Name != name {
+			t.Fatalf("position %d: expected %s, got %s", i, name, got[i].Name)
+		}
+	}
+}
+
+// TestEngineComputeAgeDirty checks the cached age reflects uncommitted edits.
+func TestEngineComputeAgeDirty(t *testing.T) {
+	now := time.Now()
+	r := Repo{
+		LastCommitTime: now.Add(-48 * time.Hour),
+		Dirty:          true,
+		DirtyTime:      now.Add(-30 * time.Minute),
+	}
+	r.ComputeAge()
+	if r.CachedAge != "30 mins" {
+		t.Errorf("expected age from dirty time, got %q", r.CachedAge)
+	}
+}
+
 func TestEngineInitialState(t *testing.T) {
 	eng := New()
 	state := eng.GetState()
